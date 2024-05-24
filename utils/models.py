@@ -1,104 +1,158 @@
 import torch
 import torch.nn as nn
-from torchvision.transforms import CenterCrop
+import torch.nn.functional as F
+from .time_encoding import time_embedding
 
 
-class Swish(nn.Module):
-    def forward(self, x):
-        return x*torch.sigmoid(x)
-    
-    
-class DoubleConv(nn.Module):
-    def __init__(self, in_channels=3, out_channels=64):
+class SelfAttention(nn.Module):
+    def __init__(self, num_channels):
         super().__init__()
-        
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3)
-        self.norm1 = nn.BatchNorm2d(out_channels)
-        self.activation1 = nn.ReLU()
-        
-        self.conv2 = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3)
-        self.norm2 = nn.BatchNorm2d(out_channels)
-        self.activation2 = nn.ReLU()
-        
-        self.layer = nn.Sequential(
-            self.conv1,
-            self.norm1,
-            self.activation1,
-            self.conv2,
-            self.norm2,
-            self.activation2
+
+        self.ln1 = nn.LayerNorm([num_channels])
+        self.mha = nn.MultiheadAttention(
+            embed_dim=num_channels, num_heads=4, batch_first=True
         )
-        
+        self.ln2 = nn.LayerNorm([num_channels])
+        self.ffn = nn.Sequential(
+            nn.Linear(num_channels, num_channels),
+            nn.ReLU(),
+            nn.Linear(num_channels, num_channels),
+        )
+
     def forward(self, x):
-        return self.layer(x)
-    
-    
-class UpConv(nn.Module):
-    def __init__(self, in_channels, out_channels, size):
+        img_size = x.shape[2:]
+
+        x = x.flatten(start_dim=2).permute(0, 2, 1)
+        x_ln = self.ln1(x)
+        x = x + self.mha(x_ln, x_ln, x_ln, need_weights=False)[0]
+        x = x + self.ffn(self.ln2(x))
+
+        return torch.unflatten(x.swapaxes(1, 2), 2, img_size)
+
+
+class DoubleConv(nn.Module):
+    def __init__(self, in_channels, out_channels, mid_channels=None, residual=False):
         super().__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.size = size
-        
+
+        self.residual = residual
+        if not mid_channels:
+            mid_channels = out_channels
+
+        self.layers = nn.Sequential(
+            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
+            nn.GroupNorm(1, mid_channels),
+            nn.GELU(),
+            nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.GroupNorm(1, out_channels),
+        )
+
     def forward(self, x):
-        return nn.Conv2d(in_channels=self.in_channels, out_channels=self.out_channels, kernel_size=1)(nn.Upsample(self.size)(x))
-    
-    
+        if self.residual:
+            return F.gelu(x + self.layers(x))
+        else:
+            return self.layers(x)
+
+
+class Down(nn.Module):
+    def __init__(self, in_channels, out_channels, time_emb_dim=256):
+        super().__init__()
+
+        self.downsample = nn.Sequential(
+            nn.MaxPool2d(2),
+            DoubleConv(in_channels, in_channels, residual=True),
+            DoubleConv(in_channels, out_channels),
+        )
+
+        self.time_emb_layer = nn.Sequential(
+            nn.SiLU(), nn.Linear(time_emb_dim, out_channels)
+        )
+
+    def forward(self, x, t):
+        x = self.downsample(x)
+        pe = self.time_emb_layer(t)
+
+        return x + pe[:, :, None, None]
+
+
+class Up(nn.Module):
+    def __init__(self, in_channels, out_channels, time_emb_dim=256):
+        super().__init__()
+
+        self.up = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
+        self.conv = nn.Sequential(
+            DoubleConv(in_channels, in_channels, residual=True),
+            DoubleConv(in_channels, out_channels, in_channels // 2),
+        )
+
+        self.time_emb_layer = nn.Sequential(
+            nn.SiLU(),
+            nn.Linear(time_emb_dim, out_channels),
+        )
+
+    def forward(self, x1, x2, t):
+        x1 = self.up(x1)
+        x1 = torch.cat([x2, x1], dim=1)
+        x1 = self.conv(x1)
+
+        pe = self.time_emb_layer(t)
+
+        return x1 + pe[:, :, None, None]
+
+
 class UNet(nn.Module):
-    def __init__(self, in_channels=3, out_channels=2):
+    def __init__(
+        self, num_in_channels=3, num_out_channels=3, time_emb_dim=256, device="cuda"
+    ):
         super().__init__()
-        
+
+        self.device = device
+        self.time_emb_dim = time_emb_dim
+
         # Encoder
-        self.conv1 = DoubleConv(in_channels=in_channels, out_channels=64)
-        self.pool1 = nn.MaxPool2d(kernel_size=2)
-        
-        self.conv2 = DoubleConv(in_channels=64, out_channels=128)
-        self.pool2 = nn.MaxPool2d(kernel_size=2)
-        
-        self.conv3 = DoubleConv(in_channels=128, out_channels=256)
-        self.pool3 = nn.MaxPool2d(kernel_size=2)
-        
-        self.conv4 = DoubleConv(in_channels=256, out_channels=512)
-        self.pool4 = nn.MaxPool2d(kernel_size=2)
-        
-        self.conv5 = DoubleConv(in_channels=512, out_channels=1024)
-        self.pool5 = nn.MaxPool2d(kernel_size=2)
-        
+        self.input_head = DoubleConv(num_in_channels, 64)
+        self.down1 = Down(64, 128)
+        self.sa1 = SelfAttention(128)
+        self.down2 = Down(128, 256)
+        self.sa2 = SelfAttention(256)
+        self.down3 = Down(256, 256)
+        self.sa3 = SelfAttention(256)
+
+        # Convolutions
+        self.conv1 = DoubleConv(256, 512)
+        self.conv2 = DoubleConv(512, 512)
+        self.conv3 = DoubleConv(512, 256)
+
         # Decoder
-        self.upconv1 = UpConv(in_channels=1024, out_channels=512, size=(56,56))
-        self.conv6 = DoubleConv(in_channels=1024, out_channels=512)
-        
-        self.upconv2 = UpConv(in_channels=512, out_channels=256, size=(104,104))
-        self.conv7 = DoubleConv(in_channels=512, out_channels=256)
-        
-        self.upconv3 = UpConv(in_channels=256, out_channels=128, size=(200,200))
-        self.conv8 = DoubleConv(in_channels=256, out_channels=128)
-        
-        self.upconv4 = UpConv(in_channels=128, out_channels=64, size=(392,392))
-        self.conv9 = DoubleConv(in_channels=128, out_channels=64)
-        
-        # Prediction head
-        self.head = nn.Conv2d(in_channels=64, out_channels=out_channels, kernel_size=1)
-        
-    def forward(self, x):
-        x1 = self.conv1(x)
-        x2 = self.conv2(self.pool1(x1))
-        x3 = self.conv3(self.pool2(x2))
-        x4 = self.conv4(self.pool3(x3))
-        x5 = self.conv5(self.pool4(x4))
-        
-        xu5 = self.upconv1(x5)
-        x6 = self.conv6(torch.cat((CenterCrop(xu5.shape[2:])(x4), xu5), dim=1))
-        xu6 = self.upconv2(x6)
-        x7 = self.conv7(torch.cat((CenterCrop(xu6.shape[2:])(x3), xu6), dim=1))
-        xu7 = self.upconv3(x7)
-        x8 = self.conv8(torch.cat((CenterCrop(xu7.shape[2:])(x2), xu7), dim=1))
-        xu8 = self.upconv4(x8)
-        x9 = self.conv9(torch.cat((CenterCrop(xu8.shape[2:])(x1), xu8), dim=1))
-        
-        return nn.Upsample(x.shape[2:])(self.head(x9))
-        
-        
-        
-        
-        
+        self.up1 = Up(512, 128)
+        self.sa4 = SelfAttention(128)
+        self.up2 = Up(256, 64)
+        self.sa5 = SelfAttention(64)
+        self.up3 = Up(128, 64)
+        self.sa6 = SelfAttention(64)
+
+        # Output head
+        self.prediction_head = nn.Conv2d(64, num_out_channels, kernel_size=1)
+
+    def forward(self, x, t):
+        t = time_embedding(t, self.time_emb_dim, self.device)
+
+        x1 = self.input_head(x)
+        x2 = self.down1(x1, t)
+        x2 = self.sa1(x2)
+        x3 = self.down2(x2, t)
+        x3 = self.sa2(x3)
+        x4 = self.down3(x3, t)
+        x4 = self.sa3(x4)
+
+        x4 = self.conv1(x4)
+        x4 = self.conv2(x4)
+        x4 = self.conv3(x4)
+
+        x = self.up1(x4, x3, t)
+        x = self.sa4(x)
+        x = self.up2(x, x2, t)
+        x = self.sa5(x)
+        x = self.up3(x, x1, t)
+        x = self.sa6(x)
+
+        return self.prediction_head(x)
