@@ -1,0 +1,20 @@
+diffusion:
+  num_steps: 1000
+
+training:
+  batch_size: 2
+  learning_rate: 0.0001
+  num_epochs: 10
+
+data:
+  dataset: huggan/smithsonian_butterflies_subset
+  img_size: 64
+
+logging:
+  log_dir: runs
+  save_dir: models
+
+sampling:
+  num_sample_imgs: 1
+  save_dir: generated
+  model_path: models/2024_05_24_17_17/checkpoint_9.pth
