@@ -27,13 +27,16 @@ class NoiseScheduler:
             self.alpha_hat = torch.tensor(
                 [self._f(t) / self._f(0) for t in range(0, T + 1)]
             )
+            
             self.alpha = torch.tensor(
-                [self.alpha_hat[t] / self.alpha_hat[t - 1] for t in range(T + 1)]
+                [0]+[self.alpha_hat[t] / self.alpha_hat[t - 1] for t in range(1, T + 1)]
             )
+            
             self.beta = torch.tensor(
+                [0] + 
                 [
                     torch.clip(1 - self.alpha_hat[t] / self.alpha_hat[t - 1], max=0.999)
-                    for t in torch.arange(0, T + 1)
+                    for t in torch.arange(1, T + 1)
                 ]
             )
 
@@ -42,6 +45,12 @@ class NoiseScheduler:
 
     def get_schedule(self):
         return self.alpha_hat
+    
+    def get_beta(self):
+        return self.beta
+    
+    def get_alpha(self):
+        return self.alpha
 
     def add_noise(self, image, t):
         return image * torch.sqrt(self.alpha_hat[t]) + torch.randn_like(
