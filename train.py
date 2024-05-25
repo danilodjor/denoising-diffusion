@@ -1,4 +1,5 @@
 import os
+import tqdm
 from datetime import datetime
 import torch
 import torch.nn as nn
@@ -54,7 +55,8 @@ def train(config):
     # Train procedure:
     model.train()
     for epoch in range(num_epochs):
-        for i, inputs in enumerate(dataloader):
+        pbar = tqdm.tqdm(dataloader, desc=f'Epoch {epoch+1}', unit='batch')
+        for i, inputs in enumerate(pbar):
             # Take a batch of images
             imgs = inputs["images"].to(device)
             optimizer.zero_grad()
@@ -83,9 +85,7 @@ def train(config):
             optimizer.step()
 
             # Report loss
-            print(
-                f"Epoch {epoch}/{num_epochs}, step {epoch*len(dataloader) + i}: {loss.item():.4f}"
-            )
+            pbar.set_postfix(loss=loss.item())
             writer.add_scalar("Training Loss", loss.item(), epoch * len(dataloader) + i)
 
         model_save_path = os.path.join(savedir, f"checkpoint_{epoch}.pth")
