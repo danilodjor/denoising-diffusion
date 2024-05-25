@@ -40,13 +40,13 @@ def sample(config):
     else:
         print("No model to load.")
     model = model.to(device)
+    model.eval()
 
     alpha_hat = noise_scheduler.get_schedule().to(device)
     beta = noise_scheduler.get_beta().to(device)
     alphas = noise_scheduler.get_alpha().to(device)
 
     x = torch.randn((num_images, 3, img_size, img_size), device=device)
-    model.eval()
     pbar = tqdm.tqdm(range(num_denoising_steps, 0, -1))
     for t in pbar:
         with torch.no_grad():

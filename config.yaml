@@ -15,6 +15,6 @@ logging:
   save_dir: models
 
 sampling:
-  num_sample_imgs: 1
+  num_sample_imgs: 6
   save_dir: generated
-  model_path: models/2024_05_24_17_17/checkpoint_9.pth
+  model_path: models\2024_05_25_16_59\checkpoint_118.pth
