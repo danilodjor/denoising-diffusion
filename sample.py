@@ -30,7 +30,7 @@ def sample(config):
 
     # Sampling loop
     noise_scheduler = NoiseScheduler(
-        T=num_denoising_steps, type="quadratic", initial_beta=1e-4, final_beta=0
+        T=num_denoising_steps, type="cosine", initial_beta=1e-4, final_beta=0
     )
 
     model = UNet()
@@ -47,11 +47,11 @@ def sample(config):
     alphas = noise_scheduler.get_alpha().to(device)
 
     x = torch.randn((num_images, 3, img_size, img_size), device=device)
-    pbar = tqdm.tqdm(range(num_denoising_steps, 0, -1))
+    pbar = tqdm.tqdm(range(num_denoising_steps-1, -1, -1))
     for t in pbar:
         with torch.no_grad():
             time = torch.tensor([t] * num_images, device=device)
-            if t > 1:
+            if t > 0:
                 z = torch.randn_like(x, device=device)
             else:
                 z = torch.zeros_like(x, device=device)

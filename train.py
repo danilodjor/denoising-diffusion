@@ -19,7 +19,7 @@ timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M")
 # Scheduler
 noise_scheduler = NoiseScheduler(
     T=config["diffusion"]["num_steps"],
-    type="quadratic",
+    type="cosine",
     initial_beta=1e-4,
     final_beta=0,
 )
@@ -55,7 +55,7 @@ def train(config):
     # Train procedure:
     model.train()
     for epoch in range(num_epochs):
-        pbar = tqdm.tqdm(dataloader, desc=f'Epoch {epoch+1}', unit='batch')
+        pbar = tqdm.tqdm(dataloader, desc=f"Epoch {epoch+1}", unit="batch")
         for i, inputs in enumerate(pbar):
             # Take a batch of images
             imgs = inputs["images"].to(device)
@@ -63,18 +63,16 @@ def train(config):
 
             # For each image sample a different time moment
             t = torch.randint(
-                low=1,
-                high=num_denoising_steps + 1,
+                low=0,
+                high=num_denoising_steps,
                 size=(imgs.shape[0],),
                 device=device,
             )
 
             # Noise each image in batch according to its time
-            alpha_hat = alpha_hats[t]
+            alpha_hat = alpha_hats[t][:, None, None, None]
             noise = torch.randn_like(imgs, device=device)
-            imgs = imgs * alpha_hat[:, None, None, None] + noise * torch.sqrt(
-                1 - alpha_hat[:, None, None, None]
-            )
+            imgs = imgs * alpha_hat + noise * torch.sqrt(1 - alpha_hat)
 
             # Predict the noise
             noise_pred = model(imgs, t)

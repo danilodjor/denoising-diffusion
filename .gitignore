@@ -3,3 +3,4 @@ runs/*
 *.pth
 *.png
 *.pyc
+testing.ipynb

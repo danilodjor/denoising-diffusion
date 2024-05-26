@@ -1,5 +1,5 @@
 import torch
-
+import math
 
 class NoiseScheduler:
     def __init__(
@@ -23,22 +23,17 @@ class NoiseScheduler:
             self.beta = torch.linspace(initial_beta, final_beta, T + 1)
             self.alpha = 1 - self.beta
             self.alpha_hat = torch.cumprod(1 - self.alpha, dim=0)
-        elif type == "quadratic":
-            self.alpha_hat = torch.tensor(
-                [self._f(t) / self._f(0) for t in range(0, T + 1)]
-            )
-            
-            self.alpha = torch.tensor(
-                [0]+[self.alpha_hat[t] / self.alpha_hat[t - 1] for t in range(1, T + 1)]
-            )
-            
-            self.beta = torch.tensor(
-                [0] + 
-                [
-                    torch.clip(1 - self.alpha_hat[t] / self.alpha_hat[t - 1], max=0.999)
-                    for t in torch.arange(1, T + 1)
-                ]
-            )
+        elif type == "cosine":
+            max_beta = 0.999
+            alpha_bar = lambda t: math.cos((t + 0.008) / 1.008 * math.pi / 2) ** 2
+            betas = []
+            for i in range(T):
+                t1 = i / T
+                t2 = (i + 1) / T
+                betas.append(min(1 - alpha_bar(t2) / alpha_bar(t1), max_beta))
+            self.beta = torch.tensor(betas)
+            self.alpha = 1-self.beta
+            self.alpha_hat = torch.cumprod(self.alpha, dim=0)
 
     def _f(self, t, s=0.008):
         return torch.cos(torch.tensor((t / self.T + s) / (1 + s) * torch.pi / 2)) ** 2
