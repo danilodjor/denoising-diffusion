@@ -21,6 +21,7 @@ def sample(config):
     num_images = config["sampling"]["num_sample_imgs"]
     save_dir = config["sampling"]["save_dir"]
     model_path = config["sampling"]["model_path"]
+    scheduler_type = config["diffusion"]["scheduler"]
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M")
@@ -30,7 +31,7 @@ def sample(config):
 
     # Sampling loop
     noise_scheduler = NoiseScheduler(
-        T=num_denoising_steps, type="cosine", initial_beta=1e-4, final_beta=0
+        T=num_denoising_steps, type=scheduler_type, initial_beta=1e-4, final_beta=0.02
     )
 
     model = UNet()

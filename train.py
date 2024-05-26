@@ -17,12 +17,15 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M")
 
 # Scheduler
+scheduler_type = config["diffusion"]["scheduler"]
+
 noise_scheduler = NoiseScheduler(
     T=config["diffusion"]["num_steps"],
-    type="cosine",
+    type=scheduler_type,
     initial_beta=1e-4,
-    final_beta=0,
+    final_beta=0.02,
 )
+
 alpha_hats = noise_scheduler.get_schedule().to(device)
 
 

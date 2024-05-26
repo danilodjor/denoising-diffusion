@@ -22,7 +22,7 @@ class NoiseScheduler:
         elif type == "linear":
             self.beta = torch.linspace(initial_beta, final_beta, T + 1)
             self.alpha = 1 - self.beta
-            self.alpha_hat = torch.cumprod(1 - self.alpha, dim=0)
+            self.alpha_hat = torch.cumprod(self.alpha, dim=0)
         elif type == "cosine":
             max_beta = 0.999
             alpha_bar = lambda t: math.cos((t + 0.008) / 1.008 * math.pi / 2) ** 2
