@@ -1,11 +1,11 @@
 diffusion:
-  num_steps: 1000
+  num_steps: 200
   scheduler: linear
 
 training:
-  batch_size: 2
-  learning_rate: 0.0001
-  num_epochs: 10
+  batch_size: 128
+  learning_rate: 0.0002
+  num_epochs: 30
 
 data:
   dataset: mnist
@@ -16,6 +16,6 @@ logging:
   save_dir: models
 
 sampling:
-  num_sample_imgs: 6
+  num_sample_imgs: 5x5
   save_dir: generated
-  model_path: models\2024_05_26_17_00\best_model_ep12.pth
+  model_path: models\2024_05_27_10_00\best_model_ep1.pth

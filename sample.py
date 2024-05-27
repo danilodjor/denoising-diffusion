@@ -1,6 +1,6 @@
 import os
 import tqdm
-from PIL import Image
+from PIL import Image, ImageDraw
 from datetime import datetime
 
 import torch
@@ -18,10 +18,13 @@ def sample(config):
     # Config
     num_denoising_steps = config["diffusion"]["num_steps"]
     img_size = config["data"]["img_size"]
-    num_images = config["sampling"]["num_sample_imgs"]
     save_dir = config["sampling"]["save_dir"]
     model_path = config["sampling"]["model_path"]
     scheduler_type = config["diffusion"]["scheduler"]
+    
+    nrow, ncol = config["sampling"]["num_sample_imgs"].split('x')
+    nrow, ncol = int(nrow), int(ncol)
+    num_images = nrow*ncol
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M")
@@ -65,10 +68,13 @@ def sample(config):
             x = 1/torch.sqrt(alpha) * (x - (1-alpha)/torch.sqrt(1 - alpha_hat[t]) * noise_pred) + sigma*z
 
     x = (x.clamp(-1, 1) + 1) / 2
-    x = torchvision.utils.make_grid(x, nrow=2)
+    x = torchvision.utils.make_grid(x, nrow=nrow)
     x = (x * 255).type(torch.uint8).permute(1, 2, 0).detach().cpu().numpy()
     
     im = Image.fromarray(x)
+    
+    I1 = ImageDraw.Draw(im)
+    I1.text((10, 10), f"dataset:{config["data"]["dataset"]},\n size={img_size},\n model_path={model_path}", fill=(255, 0, 0), font_size=10)
     
     img_path = os.path.join(save_dir, f"generated_{timestamp}.png")
     im.save(img_path)
