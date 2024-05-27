@@ -37,7 +37,8 @@ pip install -r requirements.txt
 
 ## Usage 🚀
 
-The `utils` folder contains scripts and files used for defininig the neural network model used for diffusion, the time positional encoding, scheduler class definition, as well as functions for configuring and transforming the training data. The main two scripts to use to train and sample the diffusion model are `train.py` and `sample.py`.
+The `utils` folder contains essential scripts and files for defining the neural network model used in the diffusion process. It includes the implementation of the time positional encoding, the scheduler class definition, and functions for configuring and transforming the training data. The primary scripts for training and sampling the diffusion model are `train.py` and `sample.py`, respectively.
+
 
 ### Configuration ⚙️
 All configurations for training and sampling are managed through the `config.yaml` file. Below is an overview of the key settings:
@@ -87,7 +88,6 @@ sampling:
 
 
 ### Training 🎓
-
 To train the diffusion model, simply run:
 
 `python train.py`
