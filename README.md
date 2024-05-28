@@ -88,17 +88,25 @@ sampling:
 
 
 ### Training 🎓
-To train the diffusion model, simply run:
+To train the diffusion model, follow these steps:
 
+1. Activate the _denoising_diffusion_ environment using:
+`source venv/denoising_diffusion/bin/activate`
+2. Configure the training process by modifying the _config.yaml_ file using a text editor of your choice.
+3. Run the _train.py_ script from your command line:
 `python train.py`
 
 All training parameters such as the dataset, number of epochs, learning rate, batch size, number of denoising steps, type of noise scheduler are specified in the `config.yaml` file.
 Each training log file is saved in its own subdirectory with format "YYYY_MM_DD_HH_MM". Same holds for model weights. The format denotes the time at which training was initiated.
 
 ### Sampling 🎨
-To generate new images using the trained model, run:
+To generate new images using the trained model, follow these steps:
 
-`python sample.py`
+1. Activate the _denoising_diffusion_ environment using:
+   `source venv/denoising_diffusion/bin/activate`
+2. Configure the sampling process by modifying the _config.yaml_ file using a text editor of your choice.
+3. Run the _sample.py_ script from your command line:
+   `python sample.py`
 
 The sampling process, including the selection of trained model weights, number of denoising steps, and type of noise scheduler, is configured in `config.yaml`.
 
