@@ -105,7 +105,7 @@ The sampling process, including the selection of trained model weights, number o
 ## Results 📈
 You can find example generated images in the generated directory within the project directory after running the sample.py script. All generated images are named in the format "generated_YYYY_MM_DD_HH_MM.png".
 
-The plot below illustrates the difference in $\hat{\alpha}_t$ values at various time points for linear and cosine noise schedules:
+The plot below illustrates the difference in $\bar{\alpha}_t$ values at various time points for linear and cosine noise schedules:
 
 <img src="images\alpha_hat_t.png" alt="alpha_t plot" width="400"/>
 
