@@ -115,8 +115,14 @@ You can find example generated images in the generated directory within the proj
 
 The plot below illustrates the difference in $\bar{\alpha}_t$ values at various time points for linear and cosine noise schedules. Furthermore, training on the _huggan/smithsonian_butterflies_subset_ dataset for approximately 7000 steps with a batch size of 128, a linear noise scheduler, and a learning rate of 0.0002 has produced the following loss curve.
 
-<img src="images\alpha_hat_t.png" alt="alpha_t plot" height="200"/>
-<img src="images\training-curve.png" alt="training curve" height="200"/>
+<p float="left">
+  <img src="images\alpha_hat_t.png" height="250" />
+  <img src="images\training-curve.png" height="250" /> 
+</p>
+
+
+<!-- <img src="" alt="alpha_t plot" height="200"/> -->
+<!-- <img src="images\training-curve.png" alt="training curve" height="200"/> -->
 
 Using the cosine schedule, the following noising effect is achieved:
 
