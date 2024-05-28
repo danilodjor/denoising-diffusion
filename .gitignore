@@ -4,3 +4,4 @@ runs/*
 *.png
 *.pyc
 testing.ipynb
+ddpm.ipynb

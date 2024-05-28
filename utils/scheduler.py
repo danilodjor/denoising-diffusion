@@ -20,7 +20,7 @@ class NoiseScheduler:
             self.alpha = 1 - self.beta
             self.alpha_hat = torch.cumprod(self.alpha, dim=0)
         elif type == "linear":
-            self.beta = torch.linspace(initial_beta, final_beta, T + 1)
+            self.beta = torch.linspace(initial_beta, final_beta, T)
             self.alpha = 1 - self.beta
             self.alpha_hat = torch.cumprod(self.alpha, dim=0)
         elif type == "cosine":
