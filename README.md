@@ -1,6 +1,9 @@
 # Denoising Diffusion Probabilistic Model (DDPM) Reimplementation ✨
 
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1IQBCvvv4SmGXkLVaez0LJfEqywQh79ny?usp=sharing)
+<!-- [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1IQBCvvv4SmGXkLVaez0LJfEqywQh79ny?usp=sharing) -->
+<a href="https://colab.research.google.com/drive/1IQBCvvv4SmGXkLVaez0LJfEqywQh79ny?usp=sharing" target="_blank">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"/>
+</a>
 
 This repository contains a reimplementation of the Denoising Diffusion Probabilistic Model (DDPM) for image generation, based on the [seminal paper by Ho et al.](https://arxiv.org/pdf/2006.11239), with elements from other reference literature on denoising diffusion models, such as [Improved denoising diffusion probabilistic models](https://arxiv.org/pdf/2102.09672) by Nichol and Dhariwal, and [Patch Diffusion: Faster and More Data-Efficient Training of Diffusion Models](https://arxiv.org/pdf/2304.12526) by Wang et al. The project includes scripts for training the diffusion model and for generating new images using the trained model.
 
